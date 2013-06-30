@@ -1,0 +1,5 @@
+Setup:
+
+1. Checkout submodules/dependencies
+2. Build websocket module
+3. Build gpio-admin and add resulting binary to PATH
