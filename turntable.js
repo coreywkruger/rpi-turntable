@@ -2,15 +2,30 @@
 //var server = require('websocket-server').createServer();
 var WebSocketServer = require('websocket').server;
 var http = require('http');
+var fs = require('fs');
 
 var server = http.createServer(function(request, response) {
-	console.log((new Date()) + ' Received request for ' + request.url);
-	response.writeHead(404);
-	response.end();
+    fs.readFile('index.html', function (err, data) {
+        if (err) {
+            console.log(err);
+            response.writeHead(500);
+            return response.end('Error loading index.html');
+        }
+        response.writeHead(200);
+        response.end(data); 
+    });
+    console.log((new Date()) + ' Received request for ' + request.url);
+	//response.writeHead(404);
+	//response.end();
 });
+
 server.listen(8080, function() {
 	console.log((new Date()) + ' Server is listening on port 8080');
 });
+
+/*server.listen(8080, '127.0.0.1', function() {
+	console.log((new Date()) + ' Server is listening on port 8080');
+});*/
 
 wsServer = new WebSocketServer({
 	httpServer: server,
