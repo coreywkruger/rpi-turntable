@@ -47,9 +47,16 @@ wsServer.on('request', function(request) {
 			console.log('Received Binary Message of ' + message.binaryData.length + ' bytes');
 		}
 	});
+	var sendUpdates = setInterval(function(){
+		var obj = {targetPosition:targetPosition, currentPosition:currentPosition};
+		connection.send(JSON.stringify(obj));
+	}, 1000);
+
 	connection.on('close', function(reasonCode, description) {
 		console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
+		clearInterval(sendUpdates);
 	});
+
 });
 
 
@@ -64,10 +71,10 @@ var gpio = require("pi-gpio");
 var pins = [];
 
 var phases =
-	[ [1,0,1,0]
-	, [0,1,1,0]
+	[ [1,0,0,1]
 	, [0,1,0,1]
-	, [1,0,0,1]
+	, [0,1,1,0]
+	, [1,0,1,0]
 	];
 
 function openPin(num){
@@ -102,14 +109,14 @@ process.on('SIGINT', function() {
 });
 
 var currentPosition = 0;
-var targetPosition = (+1/2 +Math.PI*2) % (Math.PI*2);
+var targetPosition = (0.3 +Math.PI*2) % (Math.PI*2);
 
 var phasei = 0;
 var interval = setInterval(function(){
-	var positionDiff = (targetPosition + currentPosition + Math.PI*2) % (Math.PI*2);
+	var positionDiff = (currentPosition - targetPosition + Math.PI*4) % (Math.PI*2);
 	if(positionDiff>Math.PI) positionDiff -= Math.PI*2;
-	console.log(currentPosition.toRad(), '+', targetPosition.toRad(), '=', positionDiff.toRad());
-	if(Math.abs(positionDiff)<0.01) return;
+	//console.log(currentPosition.toRad(), '-', targetPosition.toRad(), '=', positionDiff.toRad());
+	if(Math.abs(positionDiff)<1/10000) return;
 	step(positionDiff>0 ? -1 : 1 );
 }, 10);
 
