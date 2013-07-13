@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<title>Turntable Control Console</title>
+	<meta charset="UTF-8" />
+	<script type="application/ecmascript">
+		"use strict";
+
+		var eLog;
+		function log(line){
+			var eLine = document.createElement('div');
+			eLine.appendChild(document.createTextNode(line));
+			eLog.appendChild(eLine);
+		}
+
+		// Initialize everything when the window finishes loading
+		window.addEventListener("load", function(event) {
+			eLog = document.getElementById("log");
+			var status = document.getElementById("status");
+			var position = document.getElementById("position");
+			var url = document.getElementById("url");
+			var open = document.getElementById("open");
+			var close = document.getElementById("close");
+			var send = document.getElementById("send");
+			var text = document.getElementById("text");
+			var socket;
+
+			status.textContent = "Not Connected";
+			url.value = "ws://"+window.location.hostname+":8080";
+			close.disabled = true;
+			send.disabled = true;
+
+			// Create a new connection when the Connect button is clicked
+			open.addEventListener("click", function(event) {
+				open.disabled = true;
+				socket = new WebSocket(url.value, "turntable");
+
+				socket.addEventListener("open", function(event) {
+					close.disabled = false;
+					send.disabled = false;
+					log("Connected");
+				});
+
+				// Display messages received from the server
+				socket.addEventListener("message", function(event) {
+					try{
+						var o = JSON.parse(event.data);
+						if(o.currentPosition){
+							position.textContent = 'Now:'+Math.round(o.currentPosition*180/Math.PI)+' Target:'+Math.round(o.targetPosition*180/Math.PI);
+							return;
+						}
+					}catch(e){ log('Error: '+e.toString()); }
+					log("<< " + event.data);
+				});
+
+				// Display any errors that occur
+				socket.addEventListener("error", function(event) {
+					log("Error: " + event.toString());
+				});
+
+				socket.addEventListener("close", function(event) {
+					open.disabled = false;
+					log("Not Connected");
+				});
+			});
+
+			// Close the connection when the Disconnect button is clicked
+			close.addEventListener("click", function(event) {
+				close.disabled = true;
+				send.disabled = true;
+				log("Disconnecting");
+				socket.close();
+			});
+
+			// Send text to the server when the Send button is clicked
+			send.addEventListener("click", function(event) {
+				var value = JSON.stringify({angle:parseFloat(text.value)*Math.PI/180});
+				socket.send(value);
+				log(">> "+value);
+				//text.value = "";
+			});
+		});
+	</script>
+</head>
+<body>
+	Status: <span id="status"></span><br />
+	URL: <input id="url" /><br />
+	<input id="open" type="button" value="Connect" />&nbsp;
+	<input id="close" type="button" value="Disconnect" /><br />
+	<input id="send" type="button" value="Spin to" />&nbsp;
+	<input id="text" /> Degrees<br />
+	Position: <span id="position"></span><br />
+	<pre id="log"></pre>
+</body>
+</html>
