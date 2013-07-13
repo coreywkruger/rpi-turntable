@@ -5,14 +5,23 @@ var http = require('http');
 var fs = require('fs');
 
 var server = http.createServer(function(request, response) {
-    fs.readFile('index.html', function (err, data) {
+
+    var url = '.' + (request.url == '/' ? '/index.html' : request.url);
+
+    fs.readFile(url, function (err, data) {
         if (err) {
             console.log(err);
             response.writeHead(500);
             return response.end('Error loading index.html');
         }
-        response.writeHead(200);
-        response.end(data); 
+
+        var tmp     = url.lastIndexOf(".");
+        var ext     = url.substring((tmp + 1));
+        var mime    = mimes[ext] || 'text/plain';
+
+        response.writeHead(200, { 'Content-Type': mime });
+        response.end(data, 'utf-8');
+
     });
     console.log((new Date()) + ' Received request for ' + request.url);
 	//response.writeHead(404);
@@ -23,9 +32,18 @@ server.listen(8080, function() {
 	console.log((new Date()) + ' Server is listening on port 8080');
 });
 
-/*server.listen(8080, '127.0.0.1', function() {
-	console.log((new Date()) + ' Server is listening on port 8080');
-});*/
+// server.listen(8080, '127.0.0.1', function() {
+	// console.log((new Date()) + ' Server is listening on port 8080');
+// });
+
+var mimes = {
+    'css':  'text/css',
+    'js':   'text/javascript',
+    'htm':  'text/html',
+    'html': 'text/html',
+    'ico':  'image/vnd.microsoft.icon'
+};
+
 
 wsServer = new WebSocketServer({
 	httpServer: server,
