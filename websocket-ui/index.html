@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>js_test</title>
+	</head>
+	<body style="margin: 0 auto">
+        <meta charset="utf-8">
+            <canvas id="left_col" style="float: left; padding: 0px;">
+            </canvas>
+			<div id="panel1" style="float: left; padding: 10px;">
+			</div>
+		<script type="text/javascript" src="./js/panels/nodeOb.js"></script>
+		<script type="text/javascript" src="./js/panels/panelGrabber.js"></script>
+        <script type="text/javascript">
+            
+			
+            function init() {
+            
+			
+            var form = document.getElementById('right_col');
+            var screen = document.getElementById('left_col');
+			var ctx = screen.getContext('2d');
+			var dump = document.getElementById('panel1');
+			
+			var backColor = '#555555';
+            //var can = document.getElementById('canvas');
+            var side_edge = 3;
+            var top_edge = 2;
+            var can_aspect = top_edge / side_edge;
+            var pad = 40;
+            screen.width = 600;//window.innerWidth/2 - pad;// + "px";
+            screen.height = 600;//can_aspect * eval(screen.style.width.slice(0,-2));// + "px";
+            
+			ctx = screen.getContext("2d");
+//			ctx.fillStyle = backColor;
+//			ctx.fillRect(0,0,screen.width,screen.height);
+//			ctx.fill();
+			//form.style.width = window.innerWidth - (eval(screen.style.width.slice(0,-2))) - pad + "px";
+
+            var selected = '';
+			var nodeList = {};
+            
+
+			//redrawNodes();
+			var grabby = new panelGrabber(screen);
+			grabby.setNetworkDump(dump);
+			
+			var box = new nodeOb(screen, "first", 150, 150);
+			grabby.addNode(box);
+			box.addInputPoint();
+			box.addInputPoint();
+			box.addInputPoint();
+			box.addOutputPoint();
+			box.addOutputPoint();
+			box.addScriptField();
+			
+			
+			var box2 = new nodeOb(screen, "second", 10, 10);
+			grabby.addNode(box2);
+			box2.addInputPoint();
+			box2.addInputPoint();
+			box2.addOutputPoint();
+
+
+			var box3 = new nodeOb(screen, "third", 300, 350);
+			grabby.addNode(box3);
+			box3.addInputPoint();
+			box3.addOutputPoint();
+			box3.addOutputPoint();
+			box3.addOutputPoint();
+			
+			grabby.redrawNodes();
+			
+
+
+			
+				
+
+            window.addEventListener( 'resize', function() {
+                //onWindowResize( form, window, 1 );
+                onWindowResize( screen, window, can_aspect, true );
+            }, false );
+
+			            
+            function onWindowResize( element, wind, aspect, vertical ){
+                vertical = typeof vertical !== 'undefined' ? vertical : false;
+                element.style.width = wind.innerWidth / 2 - pad + "px";
+                if (vertical) element.style.height = aspect * eval(element.style.width.slice(0,-2)) + "px";
+            }
+
+            
+            /////////////////////////////////
+            //  Websocket connection
+            //var connection = new WebSocket('ws://172.16.28.59:8080/');
+            var connection = new WebSocket('ws://localhost:8080/');
+            var msg = '{ "message" : "Client says hi." }';
+            connection.onopen = function () {
+            	connection.send(msg);
+            }
+			
+			}
+            /////////////////////////////////
+            
+            init();
+			
+        </script>
+	</body>
+</html>
