@@ -1,0 +1,163 @@
+<html>
+	<head>
+		<title>Mongnode</title>
+		<style>canvas { width: 100%; height: 100% }</style>
+	</head>
+	<body>
+        <div id="panel">
+            <div id="Curent_Angle" style="margin-top: 10px; margin-bottom: 10px; margin-left: 3px; font-family: Tahoma; font-size: 16px; color: black;"> Angle: 0 </div>
+        </div>
+        
+        <script src="https://rawgithub.com/mrdoob/three.js/master/build/three.js"></script>
+        <script>
+
+            var scene = new THREE.Scene();
+            
+            //Scale multiplier for orthographic camera (like zoom, but without perspective).
+            var scale = 0.01;
+			var width = window.outerWidth;
+            var height = window.outerHeight;
+            
+            var camera = new THREE.OrthographicCamera( scale*(width / - 2), scale*(width / 2), scale*(height / 2), scale*(height / - 2), -100, 100 );
+            
+            
+            //  'to-scale' coordinate distances to the edge of the screen
+            //  This makes it a lot easier to implement clickable objects etc.
+            var side_edge = scale * (width / 2);
+            var top_edge = scale * (height / 2);
+            
+            var renderer = new THREE.WebGLRenderer();
+			renderer.setSize( width, height );
+			document.body.appendChild( renderer.domElement );
+            
+            /////////////////////////////////
+            //  background (black object filling the background)
+            var geoD = new THREE.CubeGeometry(side_edge * 2, top_edge * 2, 1);
+            var matD = new THREE.MeshBasicMaterial( { color: 0x000000 } );
+            var background = new THREE.Mesh(geoD, matD);
+            background.position.z = -20;
+            scene.add(background);
+            
+            /////////////////////////////////
+            //  Circle
+            var geoC = new THREE.CylinderGeometry(2, 2, 1, 16, 1, false);
+            var matC = new THREE.MeshBasicMaterial( { color: 0xFFFFFF } );
+            var circle = new THREE.Mesh(geoC, matC);
+            circle.rotation.x = Math.PI/2
+            circle.position.z = -10;
+            scene.add(circle);
+            
+            /////////////////////////////////
+            //  lever stuff
+            var geometry = new THREE.CubeGeometry(0.3,2,0.3);
+            var material = new THREE.MeshBasicMaterial( { color: 0xAAAAAA } );
+            var lever = new THREE.Mesh(geometry, material);
+            leverOrigin = new THREE.Vector3(0,0,0);
+            lever.position.y = 1;
+            scene.add(lever);
+            
+            /////////////////////////////////
+            //  ball (mouse clickable)
+            var geoB = new THREE.CylinderGeometry(0.3, 0.3, 1, 8, 1, false);
+            var matB = new THREE.MeshBasicMaterial( { color: 0xFF0000 } );
+            var ball = new THREE.Mesh(geoB, matB);
+            ball.rotation.x = Math.PI/2
+            ball.position.y = 2;
+            scene.add(ball);
+            
+            
+            var active_handle = false;
+            var proj = new THREE.Projector();
+
+            var mouse_x, mouse_y;
+            document.addEventListener('mousedown', function (event) {
+                
+                var start = new THREE.Vector3( side_edge * 2 * ( event.clientX / width - 0.5), - top_edge * 2 * ( event.clientY / height - 0.5),  0 );
+                var end   = new THREE.Vector3( 0, 0, 0 );
+                
+                var ray = new THREE.Raycaster(start, start.sub(end));
+                var intersects = ray.intersectObject(ball);
+
+                if (intersects.length > 0) active_handle = true;
+                
+                var cur_pos = new THREE.Vector3( side_edge * 2 * ( event.clientX / width - 0.5), - top_edge * 2 * ( event.clientY / height - 0.5),  0 );
+                mouse_x = cur_pos.x;
+                mouse_y = cur_pos.y;
+                
+            });
+            
+            
+            /////////////////////////////////
+            //  Websocket connection
+            var connection = new WebSocket('ws://172.16.28.59:8080/');
+            //var connection = new WebSocket('ws://localhost:8080/');
+            
+            //
+            /////////////////////////////////
+            
+            
+            var moving = false;
+            document.addEventListener('mousemove', function (event) {
+                
+                moving = false;
+
+                if ( active_handle == false ) return;
+                
+                                
+                var new_pos = new THREE.Vector3( side_edge * 2 * ( event.clientX / width - 0.5), - top_edge * 2 * ( event.clientY / height - 0.5),  0 );
+                var x_diff = new_pos.x - mouse_x;
+                var y_diff = new_pos.y - mouse_y;
+           
+                var tempVec = new THREE.Vector2( x_diff + ball.position.x, y_diff + ball.position.y).setLength(2);
+                
+                ball.position.x = tempVec.x;
+                ball.position.y = tempVec.y;
+
+                mouse_x = new_pos.x;
+                mouse_y = new_pos.y;
+                
+                
+                /////////////////////////////////
+                //  Here's where the rotation is sent out.
+                
+                var msg = '{ "angle" : ' + eval(-lever.rotation.z) + ' }';
+                connection.send(msg);
+
+                moving = true;//, console.log(-lever.rotation.z);
+                
+                document.getElementById('Curent_Angle').innerHTML = "Angle: " + eval(-lever.rotation.z);
+
+            });
+
+            document.addEventListener('mouseup', function (event) {
+
+                active_handle = false;
+                moving = false;
+            });
+
+            function render() {
+                
+                var dif = new THREE.Vector3().subVectors(ball.position, leverOrigin);
+                var up = new THREE.Vector3(0,1,0);
+                var sign = new THREE.Vector3(1,0,0);
+                var dot = dif.dot( sign );
+                var ang = - dif.angleTo(up);
+                if (dot < 0) ang = dif.angleTo(up);
+                
+                //  New rotation and position of the lever are calculated here.
+
+                lever.rotation.z = ang;
+                lever.position.x = Math.cos(Math.PI/2 + ang);
+                lever.position.y = - Math.sin(ang - Math.PI/2);
+                
+                requestAnimationFrame(render);
+                renderer.render(scene, camera);
+                
+                //console.log("handle: ", active_handle, "| move: ", moving);
+            }
+            
+            render();
+            
+        </script>
+	</body>
+</html>
